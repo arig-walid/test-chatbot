@@ -4,9 +4,51 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NewLid</title>
+<script>
+  // Restore the chosen language BEFORE the widget loads. SalesIQ opens the chat in the page's
+  // language ("By default, your website chat window will use the language available on your
+  // website" -- Zoho SalesIQ docs), so <html lang> is what decides Arabic vs English.
+  (function () {
+    var lang = 'en';
+    try { lang = localStorage.getItem('siq_lang') || 'en'; } catch (e) {}
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  })();
+</script>
+<style>
+  .lang-switch { position: fixed; top: 16px; right: 16px; display: flex; gap: 8px; font-family: system-ui, "Segoe UI", Tahoma, sans-serif; }
+  .lang-switch button { padding: 8px 14px; border: 1px solid #1c503e; background: #fff; color: #1c503e; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  .lang-switch button[aria-pressed="true"] { background: #1c503e; color: #fff; }
+</style>
 </head>
 <body>
+<div class="lang-switch">
+  <button type="button" data-lang="ar">العربية</button>
+  <button type="button" data-lang="en">English</button>
+</div>
+
 <script>window.$zoho=window.$zoho || {};$zoho.salesiq=$zoho.salesiq||{ready:function(){}}</script>
 <script id="zsiqscript" src="https://salesiq.zohopublic.com/widget?wc=siq11c21cd2423e93d14a33d0a771317a4897c22a82cb0f962d0afcc9fdd4b8c6dd" defer></script>
+
+<script>
+  var current = document.documentElement.lang;
+
+  // Also set the widget's own language once it is ready ($zoho.salesiq.language, documented API).
+  $zoho.salesiq.ready = function () { $zoho.salesiq.language(current); };
+
+  document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.lang === current));
+    btn.addEventListener('click', function () {
+      var lang = btn.dataset.lang;
+      if (lang === current) return;
+      try { localStorage.setItem('siq_lang', lang); } catch (e) {}
+      // A chat's language is fixed when it starts, so end the current one: reset() wipes the
+      // visitor's cookies and ends the connected chat (documented). Then reload so the new chat
+      // starts in the chosen language.
+      try { if ($zoho.salesiq.reset) $zoho.salesiq.reset(); } catch (e) {}
+      setTimeout(function () { location.reload(); }, 800);
+    });
+  });
+</script>
 </body>
 </html>
